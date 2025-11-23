@@ -1,3 +1,51 @@
-definitions, usage, etymologies, pronunciations, translation, etc
+# Open Dictionary
 
-TypeError [ERR_INVALID_ARG_TYPE]: The "body" argument must be of type function or an instance of Blob, ReadableStream, WritableStream, Stream, Iterable, AsyncIterable, or Promise or { readable, writable } pair. Received type number (2)
+A dictionary API service that provides definitions, usage, etymologies, pronunciations, and translations.
+
+## Getting Started
+
+### Installation
+
+Clone the repository:
+
+```shell
+git clone https://github.com/ElliottStorey/open-dictionary.git
+cd open-dictionary
+```
+
+Install dependencies:
+
+```shell
+npm install
+```
+
+Set up environment variables by copying the example file:
+
+```shell
+cp .env.example .env
+```
+
+### Usage
+
+Start the development server:
+
+```shell
+npm run dev
+```
+
+For production:
+
+```shell
+npm start
+```
+
+The API will be available at the configured port (default: http://localhost:3000).
+
+## Docker
+
+Build and run with Docker:
+
+```shell
+docker build -t open-dictionary .
+docker run -p 3000:3000 open-dictionary
+```
