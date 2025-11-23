@@ -1,0 +1,16 @@
+{
+  "name": "dictionary",
+  "description": "",
+  "author": "Elliott Storey",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --env-file=.env --env-file=.production.env server.js",
+    "dev": "node --env-file=.env server.js"
+  },
+  "dependencies": {
+    "ollama": "^0.5.11",
+    "openai": "^4.83.0"
+  }
+}

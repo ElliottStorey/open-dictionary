@@ -1,0 +1,78 @@
+<head>
+    <title>Open Dictionary</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%2210 0 100 100%22><text y=%22.90em%22 font-size=%2290%22>📚</text></svg>">
+    </link>
+</head>
+
+<style>
+    html,
+    body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+
+    body {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    form {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        margin: 1rem;
+    }
+
+    input {
+        width: 100%;
+        max-width: 30rem;
+        font-size: medium;
+        border: 1.5px solid lightgray;
+        border-radius: .25rem;
+        padding: 1rem;
+        margin: 0 1rem;
+    }
+
+    div {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: .75rem;
+    }
+
+    a {
+        text-decoration: none;
+        color: black;
+        border: 1px solid gainsboro;
+        padding: .5rem 1rem;
+        border-radius: .375rem;
+    }
+</style>
+
+<h1>Open Dictionary</h1>
+<form onsubmit="submitQuery()">
+    <input name="query" placeholder="Search for a word or phrase...">
+</form>
+<div>
+    <a href="/search/diffy">diffy</a>
+    <a href="/search/gallant">gallant</a>
+    <a href="/search/verve">verve</a>
+</div>
+
+<script>
+    async function submitQuery() {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const query = formData.get("query");
+        const url = new URL(`/search/${query}`, window.location.origin);
+        window.location.assign(url);
+    }
+</script>
