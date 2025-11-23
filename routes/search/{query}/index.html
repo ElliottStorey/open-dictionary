@@ -37,7 +37,31 @@
         flex-direction: column;
         gap: 1rem;
         min-height: min-content;
+        width: 100%;
     }
+
+    /* --- Loading & Error Styles --- */
+    #loading {
+        text-align: center;
+        color: gray;
+        margin-top: 3rem;
+        font-style: italic;
+        animation: pulse 1.5s infinite ease-in-out;
+    }
+
+    .error-msg {
+        text-align: center;
+        color: #d9534f; /* Reddish color for errors */
+        margin-top: 3rem;
+        font-weight: 500;
+    }
+
+    @keyframes pulse {
+        0% { opacity: 0.4; }
+        50% { opacity: 1; }
+        100% { opacity: 0.4; }
+    }
+    /* ----------------------------- */
 
     .sense {
         padding: 0 1rem;
@@ -82,7 +106,9 @@
 
 <h1 id="query"></h1>
 <div id="content">
-    <div id="box"></div>
+    <div id="box">
+        <p id="loading">Searching dictionary...</p>
+    </div>
 </div>
 <form onsubmit="submitQuery()">
     <input name="query" placeholder="Search for another word or phrase...">
@@ -99,62 +125,88 @@
 </script>
 <script type="module">
     let { url, params: { query } } = $request;
+    const boxElement = document.getElementById("box");
 
     document.title += ` | ${decodeURIComponent(query)}`;
-
     document.getElementById("query").textContent = decodeURIComponent(query);
 
-    const response = await fetch(`../api/search/${query}`);
-    const reader = await response.body.pipeThrough(new TextDecoderStream()).getReader();
-    let data = "";
+    try {
+        const response = await fetch(`../api/search/${query}`);
+        
+        // Handle HTTP errors (e.g. 404, 500)
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
 
-    while (true) {
-        const { value: part, done } = await reader.read();
-        if (done) break;
+        const reader = await response.body.pipeThrough(new TextDecoderStream()).getReader();
+        let data = "";
+        let hasResults = false;
 
-        data += part;
+        while (true) {
+            const { value: part, done } = await reader.read();
+            if (done) break;
 
-        try {
-            let senses;
+            data += part;
+
             try {
-                senses = JSON.parse(data);
-            } catch {
-                senses = JSON.parse(`${data}"}]`);
+                let senses;
+                // Attempt to parse complete or partial JSON
+                try {
+                    senses = JSON.parse(data);
+                } catch {
+                    senses = JSON.parse(`${data}"}]`);
+                }
+
+                // If we have valid data, clear the loading text and render
+                if (senses && senses.length > 0) {
+                    hasResults = true; 
+                    boxElement.innerHTML = ""; // Clear loading/previous content
+                    
+                    senses.forEach(sense => {
+                        const senseDiv = document.createElement("div");
+                        senseDiv.classList.add("sense");
+                        
+                        const spelling = document.createElement("h2");
+                        spelling.textContent = sense.spelling;
+                        senseDiv.appendChild(spelling);
+
+                        const info = document.createElement("p");
+                        info.textContent = sense.partOfSpeech;
+                        if (sense?.pronunciations) {
+                            info.textContent += ` • ${sense.pronunciations[0]}`;
+                        }
+                        senseDiv.appendChild(info);
+
+                        const meaning = document.createElement("p");
+                        meaning.textContent = sense.definition;
+                        senseDiv.appendChild(meaning);
+
+                        if (sense.sentence) {
+                            const exampleLabel = document.createElement("p");
+                            exampleLabel.innerHTML = "<b>Example</b>";
+                            senseDiv.appendChild(exampleLabel);
+
+                            const example = document.createElement("p");
+                            example.textContent = sense.sentence;
+                            senseDiv.appendChild(example);
+                        }
+
+                        boxElement.appendChild(senseDiv);
+                    });
+                }
+            } catch { 
+                // JSON parse errors are ignored here as we wait for more data chunks
             }
-            const element = document.querySelector("#box");
-            element.innerHTML = "";
-            senses.forEach(sense => {
-                const senseDiv = document.createElement("div");
-                senseDiv.classList.add("sense");
-                element.appendChild(senseDiv);
+        }
 
-                const spelling = document.createElement("h2");
-                spelling.textContent = sense.spelling;
-                senseDiv.appendChild(spelling);
+        // Stream finished. If no results were ever rendered, show "Not Found"
+        if (!hasResults) {
+            boxElement.innerHTML = `<p class="error-msg">No definition found for "${decodeURIComponent(query)}". Gemini API key is likely missing.</p>`;
+        }
 
-                const info = document.createElement("p");
-                info.textContent = sense.partOfSpeech;
-                if (sense?.pronunciations) {
-                    info.textContent += ` • ${sense.pronunciations[0]}`;
-                }
-                senseDiv.appendChild(info);
-
-                const meaning = document.createElement("p");
-                meaning.textContent = sense.definition;
-                senseDiv.appendChild(meaning);
-
-                if (sense.sentence) {
-                    const exampleLabel = document.createElement("p");
-                    exampleLabel.innerHTML = "<b>Example</b>";
-                    senseDiv.appendChild(exampleLabel);
-
-                    const example = document.createElement("p");
-                    example.textContent = sense.sentence;
-                    senseDiv.appendChild(example);
-                }
-
-                element.appendChild(senseDiv);
-            });
-        } catch { }
+    } catch (error) {
+        // Handle Network or Fetch errors
+        console.error(error);
+        boxElement.innerHTML = `<p class="error-msg">Unable to retrieve definition. Please try again.</p>`;
     }
 </script>
