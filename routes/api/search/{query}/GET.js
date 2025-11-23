@@ -1,6 +1,9 @@
 import OpenAI from "openai";
 
-const client = new OpenAI();
+const client = new OpenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/"
+});
 
 const systemContent = `You are an American English dictionary that specializes in describing all of the differences between commonly accepted senses (or meanings) of a word. The word submitted to you may be misspelled. Correct the spelling to match the common American form. Omit all senses that are defined as a common surname or common given name. The distinct senses of the word will be returned in JSON format which omit the leading "\`\`\`" marks.  The JSON output is an unlabeled list of the various senses of the words including the following properties:\n` +
     `\n` +
@@ -46,7 +49,7 @@ async function* handler({ params: { query } }) {
         { role: "system", content: systemContent },
         { role: "user", content: query }
     ];
-    const response = await client.chat.completions.create({ model: "gpt-4o-mini", messages, stream: true });
+    const response = await client.chat.completions.create({ model: "gemini-2.5-flash", messages, stream: true });
     for await (const part of response) {
         yield part.choices[0]?.delta?.content || "";
     }
