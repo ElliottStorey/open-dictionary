@@ -51,7 +51,7 @@
 
     .error-msg {
         text-align: center;
-        color: #d9534f; /* Reddish color for errors */
+        color: #d9534f;
         margin-top: 3rem;
         font-weight: 500;
     }
@@ -125,88 +125,82 @@
 </script>
 <script type="module">
     let { url, params: { query } } = $request;
-    const boxElement = document.getElementById("box");
-
+    
     document.title += ` | ${decodeURIComponent(query)}`;
     document.getElementById("query").textContent = decodeURIComponent(query);
+    
+    const element = document.querySelector("#box");
+    let hasFoundDefinition = false;
 
-    try {
-        const response = await fetch(`../api/search/${query}`);
-        
-        // Handle HTTP errors (e.g. 404, 500)
-        if (!response.ok) {
-            throw new Error(`Server error: ${response.status}`);
-        }
+    // We allow the fetch to proceed even if status isn't 200, 
+    // because some APIs return 404 while still streaming data.
+    const response = await fetch(`../api/search/${query}`);
+    const reader = await response.body.pipeThrough(new TextDecoderStream()).getReader();
+    let data = "";
 
-        const reader = await response.body.pipeThrough(new TextDecoderStream()).getReader();
-        let data = "";
-        let hasResults = false;
+    while (true) {
+        const { value: part, done } = await reader.read();
+        if (done) break;
 
-        while (true) {
-            const { value: part, done } = await reader.read();
-            if (done) break;
+        data += part;
 
-            data += part;
-
+        try {
+            let senses;
+            // Original parsing logic that worked for you
             try {
-                let senses;
-                // Attempt to parse complete or partial JSON
-                try {
-                    senses = JSON.parse(data);
-                } catch {
-                    senses = JSON.parse(`${data}"}]`);
-                }
-
-                // If we have valid data, clear the loading text and render
-                if (senses && senses.length > 0) {
-                    hasResults = true; 
-                    boxElement.innerHTML = ""; // Clear loading/previous content
-                    
-                    senses.forEach(sense => {
-                        const senseDiv = document.createElement("div");
-                        senseDiv.classList.add("sense");
-                        
-                        const spelling = document.createElement("h2");
-                        spelling.textContent = sense.spelling;
-                        senseDiv.appendChild(spelling);
-
-                        const info = document.createElement("p");
-                        info.textContent = sense.partOfSpeech;
-                        if (sense?.pronunciations) {
-                            info.textContent += ` • ${sense.pronunciations[0]}`;
-                        }
-                        senseDiv.appendChild(info);
-
-                        const meaning = document.createElement("p");
-                        meaning.textContent = sense.definition;
-                        senseDiv.appendChild(meaning);
-
-                        if (sense.sentence) {
-                            const exampleLabel = document.createElement("p");
-                            exampleLabel.innerHTML = "<b>Example</b>";
-                            senseDiv.appendChild(exampleLabel);
-
-                            const example = document.createElement("p");
-                            example.textContent = sense.sentence;
-                            senseDiv.appendChild(example);
-                        }
-
-                        boxElement.appendChild(senseDiv);
-                    });
-                }
-            } catch { 
-                // JSON parse errors are ignored here as we wait for more data chunks
+                senses = JSON.parse(data);
+            } catch {
+                senses = JSON.parse(`${data}"}]`);
             }
-        }
+            
+            // Only clear the loading text if we actually successfully parsed something valid
+            if (senses && Array.isArray(senses) && senses.length > 0) {
+                element.innerHTML = ""; 
+                hasFoundDefinition = true;
 
-        // Stream finished. If no results were ever rendered, show "Not Found"
-        if (!hasResults) {
-            boxElement.innerHTML = `<p class="error-msg">No definition found for "${decodeURIComponent(query)}". Gemini API key is likely missing.</p>`;
-        }
+                senses.forEach(sense => {
+                    // Extra safety check to ensure sense is an object
+                    if (!sense || typeof sense !== 'object') return;
 
-    } catch (error) {
-        // Handle Network or Fetch errors
-        console.error(error);
-        boxElement.innerHTML = `<p class="error-msg">Unable to retrieve definition. Please try again.</p>`;
+                    const senseDiv = document.createElement("div");
+                    senseDiv.classList.add("sense");
+                    element.appendChild(senseDiv);
+
+                    const spelling = document.createElement("h2");
+                    spelling.textContent = sense.spelling || "";
+                    senseDiv.appendChild(spelling);
+
+                    const info = document.createElement("p");
+                    info.textContent = sense.partOfSpeech || "";
+                    if (sense?.pronunciations && sense.pronunciations[0]) {
+                        info.textContent += ` • ${sense.pronunciations[0]}`;
+                    }
+                    senseDiv.appendChild(info);
+
+                    const meaning = document.createElement("p");
+                    meaning.textContent = sense.definition || "";
+                    senseDiv.appendChild(meaning);
+
+                    if (sense.sentence) {
+                        const exampleLabel = document.createElement("p");
+                        exampleLabel.innerHTML = "<b>Example</b>";
+                        senseDiv.appendChild(exampleLabel);
+
+                        const example = document.createElement("p");
+                        example.textContent = sense.sentence;
+                        senseDiv.appendChild(example);
+                    }
+
+                    element.appendChild(senseDiv);
+                });
+            }
+        } catch { 
+            // Silent failure during stream (waiting for more data)
+        }
+    }
+
+    // Only show error if the stream is totally done and we never found anything
+    if (!hasFoundDefinition) {
+        element.innerHTML = `<p class="error-msg">No definition found.</p>`;
     }
 </script>
