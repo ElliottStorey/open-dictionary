@@ -6,8 +6,8 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node --env-file=.env --env-file=.production.env server.js",
-    "dev": "node --env-file=.env server.js"
+    "start": "node --env-file=.env server.js",
+    "dev": "node server.js"
   },
   "dependencies": {
     "ollama": "^0.5.11",

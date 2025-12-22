@@ -30,7 +30,7 @@ class Stringify extends Transform {
 }
 
 async function getPath(url) {
-    let path = "./routes";
+    let path = "./src/routes";
     const params = {};
 
     const subdirs = url.split("/").filter(Boolean);
