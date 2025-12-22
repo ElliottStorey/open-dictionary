@@ -37,6 +37,8 @@
         flex-direction: column;
         gap: 1rem;
         min-height: min-content;
+        /* Added width to ensure loading text centers correctly */
+        width: 100%; 
     }
 
     .sense {
@@ -78,6 +80,21 @@
         padding: 1rem;
         margin: 0 1rem;
     }
+
+    /* --- NEW LOADING STYLE --- */
+    .loading-msg {
+        text-align: center;
+        color: #666;
+        margin-top: 2rem;
+        font-style: italic;
+        animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+        0% { opacity: 0.5; }
+        50% { opacity: 1; }
+        100% { opacity: 0.5; }
+    }
 </style>
 
 <h1 id="query"></h1>
@@ -101,8 +118,11 @@
     let { url, params: { query } } = $request;
 
     document.title += ` | ${decodeURIComponent(query)}`;
-
     document.getElementById("query").textContent = decodeURIComponent(query);
+
+    const element = document.querySelector("#box");
+    
+    element.innerHTML = `<div class="loading-msg">Searching definitions...</div>`;
 
     const response = await fetch(`../api/search/${query}`);
     const reader = await response.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -121,8 +141,9 @@
             } catch {
                 senses = JSON.parse(`${data}"}]`);
             }
-            const element = document.querySelector("#box");
+            
             element.innerHTML = "";
+            
             senses.forEach(sense => {
                 const senseDiv = document.createElement("div");
                 senseDiv.classList.add("sense");
@@ -152,8 +173,6 @@
                     example.textContent = sense.sentence;
                     senseDiv.appendChild(example);
                 }
-
-                element.appendChild(senseDiv);
             });
         } catch { }
     }
